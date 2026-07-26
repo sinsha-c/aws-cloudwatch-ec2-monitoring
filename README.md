@@ -164,7 +164,7 @@ Configure AWS CloudWatch to monitor an EC2 instance by collecting logs, tracking
 3. Add the metrics to a graph to visualize trends over time.
 
 *CloudWatch metrics dashboard with graphs*
-`![Metrics Dashboard](screenshots/04-metrics-dashboard.png)`
+![Metrics Dashboard](screenshots/04-metrics-dashboard.png)
 
 ---
 
@@ -182,7 +182,7 @@ Configure AWS CloudWatch to monitor an EC2 instance by collecting logs, tracking
 6. Attach the SNS topic as the alarm action.
 
 *High CPU alarm configuration*
-`![CPU Alarm Config](screenshots/05-cpu-alarm-config.png)`
+![CPU Alarm Config](screenshots/05-cpu-alarm-config.png)
 
 #### Alarm 2: EC2 Status Check Failure
 
@@ -191,7 +191,7 @@ Configure AWS CloudWatch to monitor an EC2 instance by collecting logs, tracking
 3. Use the same SNS topic to send notifications.
 
 *Status check alarm configuration*
-`![Status Check Alarm Config](screenshots/06-status-check-alarm-config.png)`
+![Status Check Alarm Config](screenshots/06-status-check-alarm-config.png)
 
 ---
 
@@ -214,10 +214,10 @@ while true; do curl http://<EC2_PUBLIC_IP>; done
 - An email notification arrives via SNS when the alarm triggers.
 
 *Alarm in ALARM state*
-`![Alarm Triggered](screenshots/07-alarm-triggered.png)`
+![Alarm Triggered](screenshots/07-alarm-triggered.png)
 
 *SNS email notification received*
-`![SNS Email](screenshots/08-sns-email.png)`
+![SNS Email](screenshots/08-sns-email.png)
 
 ---
 
@@ -231,7 +231,7 @@ Final checklist to confirm everything works end-to-end:
 - [ ] SNS email notifications are received when alarms are triggered
 
 *Alarm history showing OK ↔ ALARM transitions*
-`![Alarm History](screenshots/09-alarm-history.png)`
+![Alarm History](screenshots/09-alarm-history.png)
 
 ---
 
