@@ -20,32 +20,7 @@ By the end, the server can be watched in real time, and you'll get an email the 
 
 ## Architecture
 
-```
-                ┌─────────────────────┐
-                │   EC2 Instance       │
-                │   (Ubuntu + Nginx)   │
-                │                       │
-                │  CloudWatch Agent ────┼──► CloudWatch Logs
-                │                       │      • syslog
-                │                       │      • nginx access.log
-                │                       │      • nginx error.log
-                └──────────┬────────────┘
-                           │
-                           ▼
-                 CloudWatch Metrics
-             (CPU, Network In/Out, Disk I/O)
-                           │
-                           ▼
-                 CloudWatch Alarms
-              • High CPU (> 70%)
-              • Status Check Failed
-                           │
-                           ▼
-                     SNS Topic
-                           │
-                           ▼
-                  📧 Email Notification
-```
+![Architecture Diagram](screenshots/cloudwatch-architecture.png)
 
 ---
 
@@ -125,14 +100,15 @@ Configure AWS CloudWatch to monitor an EC2 instance by collecting logs, tracking
    - **Do you want to monitor any log files:** `yes`
    - Add each log file when prompted, one at a time:
      - Log file path: `/var/log/syslog` → Log group name: `syslog`
-     - Log file path: `/var/log/nginx/access.log` → Log group name: `nginx-access-log`
-     - Log file path: `/var/log/nginx/error.log` → Log group name: `nginx-error-log`
+     - Log file path: `/var/log/nginx/access.log` → Log group name: `access-log`
+     - Log file path: `/var/log/nginx/error.log` → Log group name: `error-log`
    - **Do you want to turn on StatsD daemon?:** `no`
    - **Do you want the CloudWatch agent to also retrieve X-ray traces?L** `no`
    - When asked if you want to monitor more log files, choose **no** once all three are added.
    - At the end, choose to **store the config directly** (the wizard saves it to `/opt/aws/amazon-cloudwatch-agent/bin/config.json.` automatically).
 
 4. Start the agent using the config file the wizard just created:
+
    ```bash
    sudo systemctl start amazon-cloudwatch-agent
    sudo systemctl status amazon-cloudwatch-agent
@@ -178,13 +154,17 @@ Configure AWS CloudWatch to monitor an EC2 instance by collecting logs, tracking
 #### Alarm 1: High CPU Usage
 
 1. Go to **CloudWatch → Alarms → Create alarm**.
+      - Click **Select metric**
+      - Choose: **EC2 → Per-Instance Metrics**
 2. Select the **CPUUtilization** metric for your instance.
 3. Set:
+   - **Statistic:** Average
    - **Threshold:** Greater than 70%
-   - **Evaluation Period:** 2 consecutive periods
-4. Create an **SNS topic** (e.g., `ec2-alerts`) and subscribe your email address.
-5. Confirm the subscription from the confirmation email AWS sends you.
+   - **Additional configuration → Datapoints to alarm:** 2 out of 2 (Meaning: Alert if CPU usage stays above 70% for 2 consecutive periods)
+4. Create an **SNS topic** (Name : `ec2-alerts`) and subscribe your email address.
+5. Confirm the subscription from the confirmation email AWS sends you (Without this, alerts won't work).
 6. Attach the SNS topic as the alarm action.
+7. Name the Alarm `High-CPU-Usage-Alarm` then click **Create alarm**
 
 *High CPU alarm configuration*
 
@@ -193,8 +173,13 @@ Configure AWS CloudWatch to monitor an EC2 instance by collecting logs, tracking
 #### Alarm 2: EC2 Status Check Failure
 
 1. Create another alarm using the **StatusCheckFailed** metric.
-2. Set the threshold to **greater than 0**.
-3. Use the same SNS topic to send notifications.
+2. **1.4 Configure Metric**
+   Set:
+      - **Statistic:** Maximum
+      - **Period:** 5 minutes
+3. Set the threshold to **greater than 0**(Meaning: Alert immediately if the instance fails a status check).
+4. Use the same SNS topic to send notifications.
+5. Name the Alarm `EC2-Status-Check-Alarm` and click **Create alarm**
 
 *Status check alarm configuration*
 
@@ -227,6 +212,36 @@ while true; do curl http://<EC2_PUBLIC_IP>; done
 *SNS email notification received*
 
 ![SNS Email](screenshots/08-sns-email.png)
+
+**Testing the Status Check Alarm**
+
+Unlike CPU load, a real status check failure (kernel panic, hypervisor issue, etc.) isn't something you'd want to intentionally cause on a live instance. Instead, simulate the alarm state directly to verify the alarm → SNS → email pipeline works end-to-end:
+ 
+```bash
+aws cloudwatch set-alarm-state \
+  --alarm-name "EC2-Status-Check-Alarm" \
+  --state-value ALARM \
+  --state-reason "Testing status check alarm manually"
+```
+ 
+**Observe:**
+- The alarm transitions from **OK → ALARM** in the CloudWatch Console within a few seconds.
+- An email notification arrives via SNS.
+Revert it back to `OK` once confirmed:
+```bash
+aws cloudwatch set-alarm-state \
+  --alarm-name "EC2-Status-Check-Alarm" \
+  --state-value OK \
+  --state-reason "Reverting after test"
+```
+ 
+*Status check alarm manually triggered*
+
+![Status Check Alarm Test](screenshots/08a-status-check-alarm-test.png)
+
+*SNS email notification received*
+
+![Status Check Alarm Test Mail](screenshots/08a-status-check-alarm-test-mail.png)
 
 ---
 
@@ -267,5 +282,6 @@ To avoid ongoing charges, remember to:
 ## Author
 
 **Sinsha C**
-Senior DevOps Engineer | Cloud & Infrastructure Specialist
-[GitHub](https://github.com/sinsha-c) • [LinkedIn](https://linkedin.com/in/sinshac/)
+
+[![GitHub](https://img.shields.io/badge/GitHub-sinsha--c-181717?style=flat&logo=github&logoColor=white)](https://github.com/sinsha-c)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-sinshac-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/sinshac)
